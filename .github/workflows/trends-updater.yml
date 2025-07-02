@@ -1,0 +1,61 @@
+name: Update Twitter Trends
+
+# Controls when the action will run.
+# This workflow runs on a schedule (every day at midnight UTC) and can also be triggered manually.
+on:
+  schedule:
+    # Runs every day at midnight UTC.
+    - cron: '0 0 * * *'
+  workflow_dispatch: # Allows for manual triggering from the Actions tab.
+
+jobs:
+  update-trends:
+    runs-on: ubuntu-latest
+
+    # Grant permissions for the workflow to write to the repository.
+    permissions:
+      contents: write
+
+    steps:
+      # 1. Check out the repository code
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # 2. Set up the latest LTS version of Node.js
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 'lts/*'
+          cache: 'npm' # Cache npm dependencies to speed up future runs
+
+      # 3. Install the project dependencies
+      - name: Install dependencies
+        run: npm install
+
+      # 4. Run the script to fetch and save trends
+      # The RAPIDAPI_KEY is passed as an environment variable from GitHub secrets.
+      - name: Run script to fetch trends
+        run: node index.js
+        env:
+          RAPIDAPI_KEY: 35fa66de07mshf9e587512f59407p1c744fjsn63783337fdf2
+
+      # 5. Commit and push the updated trend files to the repository
+      - name: Commit and push changes
+        run: |
+          # Configure git with the bot's identity
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          
+          # Add all new or modified files to the staging area
+          git add .
+          
+          # Check if there are any changes to commit
+          if ! git diff --staged --quiet; then
+            # Commit the changes with a descriptive message
+            git commit -m "Update Twitter trends for $(date -u +'%Y-%m-%d')"
+            
+            # Push the changes to the main branch
+            git push
+          else
+            echo "No changes to commit."
+          fi
